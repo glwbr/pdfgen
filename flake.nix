@@ -1,6 +1,6 @@
 {
   description = "PDFGen with typst because LaTeX is too much for me ";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/f62d6734af4581af614cab0f2aa16bcecfc33c11";
 
   outputs = { self, nixpkgs, ... }:
     let
@@ -14,7 +14,7 @@
           exit 1
         fi
 
-        ${pkgs.go-migrate}/bin/migrate create -ext sql -dir ./internal/db/migrations -tz UTC "$1"
+        ${pkgs.go-migrate}/bin/migrate create -ext sql -dir ./db/migrations -tz UTC "$1"
       '';
     in
     {
@@ -44,12 +44,12 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
         in
-        {
+          {
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
-              nodejs_24
+              nodejs
               yarn
-              go go-migrate treefmt typst sqlc go-swag air
+              go go-migrate treefmt typst sqlc go-swag air glow
               self.packages.${system}.mg
             ];
             shellHook = ''
