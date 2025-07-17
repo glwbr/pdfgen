@@ -6,13 +6,13 @@ import (
 	"os"
 	"time"
 
-	sqlc "github.com/glwbr/pdfgen/internal/db/generated"
+	"github.com/glwbr/pdfgen/internal/db/sqlc"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DB struct {
 	Pool    *pgxpool.Pool
-	Queries *sqlc.Queries
+	Queries sqlc.Querier
 }
 
 func Connect(ctx context.Context) (*DB, error) {
