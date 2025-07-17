@@ -1,17 +1,26 @@
+---
 services:
   postgresql:
-    image: postgres:13.21-alpine3.21
+    image: postgres:17.5-alpine3.22
     shm_size: 128mb
     container_name: db
     restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: pdfgen
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: "pdfgen"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    command: >
+      sh -c "wget -qO- https://github.com/VADOSWARE/pg_idkit/releases/download/v0.3.0/pg_idkit-0.3.0-pg17-musl.tar.gz | tar x &&
+      cp pg_idkit-0.3.0/lib/postgresql/pg_idkit.so /usr/local/lib/postgresql/ &&
+      mkdir -p /usr/local/share/postgresql/extension &&
+      cp pg_idkit-0.3.0/share/postgresql/extension/* /usr/local/share/postgresql/extension &&
+      echo -e '#!/bin/sh\\nset -e\\npsql -v ON_ERROR_STOP=1 --username \"$$POSTGRES_USER\" --dbname \"$$POSTGRES_DB\" -c \"CREATE EXTENSION IF NOT EXISTS pg_idkit;\"' > /docker-entrypoint-initdb.d/create_pg_idkit_extensions.sh &&
+      chmod +x /docker-entrypoint-initdb.d/create_pg_idkit_extensions.sh &&
+      docker-entrypoint.sh postgres"
 
   pgadmin:
     image: dpage/pgadmin4
