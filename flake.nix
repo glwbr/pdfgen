@@ -49,7 +49,7 @@
             buildInputs = with pkgs; [
               nodejs
               yarn
-              go go-migrate treefmt typst sqlc go-swag air glow
+              go go-migrate treefmt typst sqlc go-swag air
               self.packages.${system}.mg
             ];
             shellHook = ''
