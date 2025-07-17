@@ -7,9 +7,9 @@ package db
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/segmentio/ksuid"
 )
 
 type DocumentCategory string
@@ -55,6 +55,14 @@ func (ns NullDocumentCategory) Value() (driver.Value, error) {
 	return string(ns.DocumentCategory), nil
 }
 
+func AllDocumentCategoryValues() []DocumentCategory {
+	return []DocumentCategory{
+		DocumentCategoryLegal,
+		DocumentCategoryPersonal,
+		DocumentCategoryBusiness,
+	}
+}
+
 type DocumentStatus string
 
 const (
@@ -96,6 +104,14 @@ func (ns NullDocumentStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DocumentStatus), nil
+}
+
+func AllDocumentStatusValues() []DocumentStatus {
+	return []DocumentStatus{
+		DocumentStatusDraft,
+		DocumentStatusPreview,
+		DocumentStatusFinal,
+	}
 }
 
 type FieldType string
@@ -147,50 +163,63 @@ func (ns NullFieldType) Value() (driver.Value, error) {
 	return string(ns.FieldType), nil
 }
 
+func AllFieldTypeValues() []FieldType {
+	return []FieldType{
+		FieldTypeText,
+		FieldTypeDate,
+		FieldTypeCurrency,
+		FieldTypeNumber,
+		FieldTypeEmail,
+		FieldTypeSelect,
+		FieldTypeTextarea,
+		FieldTypeCheckbox,
+		FieldTypeRadio,
+	}
+}
+
 type Document struct {
-	ID               uuid.UUID          `json:"id"`
-	TemplateID       pgtype.UUID        `json:"template_id"`
-	Name             string             `json:"name"`
-	FieldValues      []byte             `json:"field_values"`
-	GeneratedPdfPath pgtype.Text        `json:"generated_pdf_path"`
-	Status           NullDocumentStatus `json:"status"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	ID          ksuid.KSUID    `json:"id"`
+	TemplateID  ksuid.KSUID    `json:"template_id"`
+	Name        string         `json:"name"`
+	FieldValues []byte         `json:"field_values"`
+	FilePath    string         `json:"file_path"`
+	Status      DocumentStatus `json:"status"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type DocumentType struct {
-	ID          uuid.UUID          `json:"id"`
-	Name        string             `json:"name"`
-	Category    DocumentCategory   `json:"category"`
-	Description pgtype.Text        `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID          ksuid.KSUID      `json:"id"`
+	Name        string           `json:"name"`
+	Category    DocumentCategory `json:"category"`
+	Description *string          `json:"description"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
 type Template struct {
-	ID          uuid.UUID          `json:"id"`
-	Name        string             `json:"name"`
-	TypeID      uuid.UUID          `json:"type_id"`
-	FilePath    string             `json:"file_path"`
-	Description pgtype.Text        `json:"description"`
-	IsActive    pgtype.Bool        `json:"is_active"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID        ksuid.KSUID `json:"id"`
+	Name      string      `json:"name"`
+	TypeID    ksuid.KSUID `json:"type_id"`
+	FilePath  string      `json:"file_path"`
+	IsActive  bool        `json:"is_active"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
 }
 
 type TemplateField struct {
-	ID              uuid.UUID          `json:"id"`
-	TemplateID      pgtype.UUID        `json:"template_id"`
-	FieldName       string             `json:"field_name"`
-	FieldLabel      string             `json:"field_label"`
-	FieldType       FieldType          `json:"field_type"`
-	IsRequired      pgtype.Bool        `json:"is_required"`
-	FieldOrder      pgtype.Int4        `json:"field_order"`
-	DefaultValue    pgtype.Text        `json:"default_value"`
-	Placeholder     pgtype.Text        `json:"placeholder"`
-	HelpText        pgtype.Text        `json:"help_text"`
-	ValidationRules []byte             `json:"validation_rules"`
-	Options         []byte             `json:"options"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ID              ksuid.KSUID `json:"id"`
+	TemplateID      ksuid.KSUID `json:"template_id"`
+	FieldName       string      `json:"field_name"`
+	FieldLabel      string      `json:"field_label"`
+	FieldType       FieldType   `json:"field_type"`
+	IsRequired      bool        `json:"is_required"`
+	FieldOrder      int32       `json:"field_order"`
+	DefaultValue    *string     `json:"default_value"`
+	Placeholder     *string     `json:"placeholder"`
+	HelpText        *string     `json:"help_text"`
+	ValidationRules []byte      `json:"validation_rules"`
+	Options         []byte      `json:"options"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
 }

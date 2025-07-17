@@ -1,7 +1,7 @@
 -- Templates
 -- name: CreateTemplate :one
-INSERT INTO templates (name, type_id, file_path, description, is_active)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO templates (name, type_id, file_path, is_active)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: ListTemplates :many
@@ -25,7 +25,7 @@ ORDER BY name;
 
 -- name: UpdateTemplate :one
 UPDATE templates
-SET name = $2, type_id = $3, file_path = $4, description = $5, is_active = $6
+SET name = $2, type_id = $3, file_path = $4, is_active = $5
 WHERE id = $1
 RETURNING *;
 

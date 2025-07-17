@@ -7,23 +7,22 @@ package db
 
 import (
 	"context"
+	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/segmentio/ksuid"
 )
 
 const createTemplate = `-- name: CreateTemplate :one
-INSERT INTO templates (name, type_id, file_path, description, is_active)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, type_id, file_path, description, is_active, created_at, updated_at
+INSERT INTO templates (name, type_id, file_path, is_active)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, type_id, file_path, is_active, created_at, updated_at
 `
 
 type CreateTemplateParams struct {
-	Name        string      `json:"name"`
-	TypeID      uuid.UUID   `json:"type_id"`
-	FilePath    string      `json:"file_path"`
-	Description pgtype.Text `json:"description"`
-	IsActive    pgtype.Bool `json:"is_active"`
+	Name     string      `json:"name"`
+	TypeID   ksuid.KSUID `json:"type_id"`
+	FilePath string      `json:"file_path"`
+	IsActive bool        `json:"is_active"`
 }
 
 // Templates
@@ -32,7 +31,6 @@ func (q *Queries) CreateTemplate(ctx context.Context, arg CreateTemplateParams) 
 		arg.Name,
 		arg.TypeID,
 		arg.FilePath,
-		arg.Description,
 		arg.IsActive,
 	)
 	var i Template
@@ -41,7 +39,6 @@ func (q *Queries) CreateTemplate(ctx context.Context, arg CreateTemplateParams) 
 		&i.Name,
 		&i.TypeID,
 		&i.FilePath,
-		&i.Description,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -53,16 +50,16 @@ const deleteTemplate = `-- name: DeleteTemplate :exec
 UPDATE templates SET is_active = false WHERE id = $1
 `
 
-func (q *Queries) DeleteTemplate(ctx context.Context, id uuid.UUID) error {
+func (q *Queries) DeleteTemplate(ctx context.Context, id ksuid.KSUID) error {
 	_, err := q.db.Exec(ctx, deleteTemplate, id)
 	return err
 }
 
 const getTemplateByID = `-- name: GetTemplateByID :one
-SELECT id, name, type_id, file_path, description, is_active, created_at, updated_at FROM templates WHERE id = $1
+SELECT id, name, type_id, file_path, is_active, created_at, updated_at FROM templates WHERE id = $1
 `
 
-func (q *Queries) GetTemplateByID(ctx context.Context, id uuid.UUID) (Template, error) {
+func (q *Queries) GetTemplateByID(ctx context.Context, id ksuid.KSUID) (Template, error) {
 	row := q.db.QueryRow(ctx, getTemplateByID, id)
 	var i Template
 	err := row.Scan(
@@ -70,7 +67,6 @@ func (q *Queries) GetTemplateByID(ctx context.Context, id uuid.UUID) (Template, 
 		&i.Name,
 		&i.TypeID,
 		&i.FilePath,
-		&i.Description,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -79,26 +75,25 @@ func (q *Queries) GetTemplateByID(ctx context.Context, id uuid.UUID) (Template, 
 }
 
 const getTemplateWithType = `-- name: GetTemplateWithType :one
-SELECT t.id, t.name, t.type_id, t.file_path, t.description, t.is_active, t.created_at, t.updated_at, dt.name as type_name, dt.category
+SELECT t.id, t.name, t.type_id, t.file_path, t.is_active, t.created_at, t.updated_at, dt.name as type_name, dt.category
 FROM templates t
 JOIN document_types dt ON t.type_id = dt.id
 WHERE t.id = $1
 `
 
 type GetTemplateWithTypeRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Name        string             `json:"name"`
-	TypeID      uuid.UUID          `json:"type_id"`
-	FilePath    string             `json:"file_path"`
-	Description pgtype.Text        `json:"description"`
-	IsActive    pgtype.Bool        `json:"is_active"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	TypeName    string             `json:"type_name"`
-	Category    DocumentCategory   `json:"category"`
+	ID        ksuid.KSUID      `json:"id"`
+	Name      string           `json:"name"`
+	TypeID    ksuid.KSUID      `json:"type_id"`
+	FilePath  string           `json:"file_path"`
+	IsActive  bool             `json:"is_active"`
+	CreatedAt time.Time        `json:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at"`
+	TypeName  string           `json:"type_name"`
+	Category  DocumentCategory `json:"category"`
 }
 
-func (q *Queries) GetTemplateWithType(ctx context.Context, id uuid.UUID) (GetTemplateWithTypeRow, error) {
+func (q *Queries) GetTemplateWithType(ctx context.Context, id ksuid.KSUID) (GetTemplateWithTypeRow, error) {
 	row := q.db.QueryRow(ctx, getTemplateWithType, id)
 	var i GetTemplateWithTypeRow
 	err := row.Scan(
@@ -106,7 +101,6 @@ func (q *Queries) GetTemplateWithType(ctx context.Context, id uuid.UUID) (GetTem
 		&i.Name,
 		&i.TypeID,
 		&i.FilePath,
-		&i.Description,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -117,7 +111,7 @@ func (q *Queries) GetTemplateWithType(ctx context.Context, id uuid.UUID) (GetTem
 }
 
 const listTemplates = `-- name: ListTemplates :many
-SELECT id, name, type_id, file_path, description, is_active, created_at, updated_at FROM templates
+SELECT id, name, type_id, file_path, is_active, created_at, updated_at FROM templates
 WHERE is_active = true
 ORDER BY name
 `
@@ -136,7 +130,6 @@ func (q *Queries) ListTemplates(ctx context.Context) ([]Template, error) {
 			&i.Name,
 			&i.TypeID,
 			&i.FilePath,
-			&i.Description,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -152,12 +145,12 @@ func (q *Queries) ListTemplates(ctx context.Context) ([]Template, error) {
 }
 
 const listTemplatesByType = `-- name: ListTemplatesByType :many
-SELECT id, name, type_id, file_path, description, is_active, created_at, updated_at FROM templates
+SELECT id, name, type_id, file_path, is_active, created_at, updated_at FROM templates
 WHERE type_id = $1 AND is_active = true
 ORDER BY name
 `
 
-func (q *Queries) ListTemplatesByType(ctx context.Context, typeID uuid.UUID) ([]Template, error) {
+func (q *Queries) ListTemplatesByType(ctx context.Context, typeID ksuid.KSUID) ([]Template, error) {
 	rows, err := q.db.Query(ctx, listTemplatesByType, typeID)
 	if err != nil {
 		return nil, err
@@ -171,7 +164,6 @@ func (q *Queries) ListTemplatesByType(ctx context.Context, typeID uuid.UUID) ([]
 			&i.Name,
 			&i.TypeID,
 			&i.FilePath,
-			&i.Description,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -188,18 +180,17 @@ func (q *Queries) ListTemplatesByType(ctx context.Context, typeID uuid.UUID) ([]
 
 const updateTemplate = `-- name: UpdateTemplate :one
 UPDATE templates
-SET name = $2, type_id = $3, file_path = $4, description = $5, is_active = $6
+SET name = $2, type_id = $3, file_path = $4, is_active = $5
 WHERE id = $1
-RETURNING id, name, type_id, file_path, description, is_active, created_at, updated_at
+RETURNING id, name, type_id, file_path, is_active, created_at, updated_at
 `
 
 type UpdateTemplateParams struct {
-	ID          uuid.UUID   `json:"id"`
-	Name        string      `json:"name"`
-	TypeID      uuid.UUID   `json:"type_id"`
-	FilePath    string      `json:"file_path"`
-	Description pgtype.Text `json:"description"`
-	IsActive    pgtype.Bool `json:"is_active"`
+	ID       ksuid.KSUID `json:"id"`
+	Name     string      `json:"name"`
+	TypeID   ksuid.KSUID `json:"type_id"`
+	FilePath string      `json:"file_path"`
+	IsActive bool        `json:"is_active"`
 }
 
 func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) (Template, error) {
@@ -208,7 +199,6 @@ func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) 
 		arg.Name,
 		arg.TypeID,
 		arg.FilePath,
-		arg.Description,
 		arg.IsActive,
 	)
 	var i Template
@@ -217,7 +207,6 @@ func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) 
 		&i.Name,
 		&i.TypeID,
 		&i.FilePath,
-		&i.Description,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
